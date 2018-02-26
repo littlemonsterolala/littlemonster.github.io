@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html>
+    <!-- title -->
+
+
+
+
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" >
+    <title>CSS小知识——气泡框实现（转） · 小怪兽的窝</title>
+    <style type="text/css">
+    @font-face {
+        font-family: 'Oswald-Regular';
+        src: url("/littlemonster.github.io/font/Oswald-Regular.ttf");
+    }
+
+    body {
+        margin: 0;
+    }
+
+    header,
+    footer,
+    .back-top,
+    .sidebar,
+    .container,
+    .site-intro-meta,
+    .toc-wrapper {
+        display: none;
+    }
+
+    .site-intro {
+        position: relative;
+        z-index: 3;
+        width: 100%;
+        height: 50vh;
+        overflow: hidden;
+        box-shadow: 0 0 3px 0 rgba(0, 0, 0, 0.7);
+    }
+
+    .site-intro-placeholder {
+        position: absolute;
+        z-index: -2;
+        top: 0;
+        left: 0;
+        width: calc(100% + 300px);
+        height: 100%;
+        background: repeating-linear-gradient(-45deg, #444 0, #444 80px, #333 80px, #333 160px);
+        background-position: center center;
+        transform: translate3d(-226px, 0, 0);
+        animation: gradient-move 2.5s ease-out 0s 1;
+    }
+
+    @keyframes gradient-move {
+        0% {
+            transform: translate3d(-226px, 0, 0);
+        }
+        100% {
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+</style>
+
+    <link rel="preload" href= /littlemonster.github.io/css/style.css?v=20180225 as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="stylesheet" type="text/css" href= /littlemonster.github.io/css/mobile.css?v=20180225 media="(max-width: 980px)"/>
+    <link rel="icon" href= /littlemonster.github.io/assets/github.ico>
+    <script>
+  // load webfont-loader async, and add callback function
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+  
+  // get user agent
+  var browser = {
+    versions: function () {
+      var u = window.navigator.userAgent;
+      return {
+        userAgent: u,
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1, //火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Linux') > -1, //android终端或者uc浏览器
+        iPhone: u.indexOf('iPhone') > -1 || u.indexOf('Mac') > -1, //是否为iPhone或者安卓QQ浏览器
+        iPad: u.indexOf('iPad') > -1, //是否为iPad
+        webApp: u.indexOf('Safari') == -1, //是否为web应用程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') == -1, //是否为微信浏览器
+        uc: u.indexOf('UCBrowser') > -1 //是否为android下的UC浏览器
+      };
+    }()
+  }
+  console.log("userAgent:" + browser.versions.userAgent);
+
+  // callback
+  function fontLoaded() {
+    console.log('font loaded');
+    if (document.getElementsByClassName('site-intro-meta')) {
+      document.getElementsByClassName('intro-title')[0].classList.add('intro-fade-in');
+      document.getElementsByClassName('intro-subtitle')[0].classList.add('intro-fade-in');
+      var postIntroTags = document.getElementsByClassName('post-intro-tags')[0],
+        postIntroMeat = document.getElementsByClassName('post-intro-meta')[0];
+      if (postIntroTags) {
+        postIntroTags.classList.add('post-fade-in');
+      }
+      if (postIntroMeat) {
+        postIntroMeat.classList.add('post-fade-in');
+      }
+    }
+  }
+
+  // UC不支持跨域，所以直接显示
+  function asyncCb(){
+    if (browser.versions.uc) {
+      console.log("UCBrowser");
+      fontLoaded();
+    } else {
+      WebFont.load({
+        custom: {
+          families: ['Oswald-Regular']
+        },
+        loading: function () {  //所有字体开始加载
+          // console.log('loading');
+        },
+        active: function () {  //所有字体已渲染
+          fontLoaded();
+        },
+        inactive: function () { //字体预加载失败，无效字体或浏览器不支持加载
+          console.log('inactive: timeout');
+          fontLoaded();
+        },
+        timeout: 5000 // Set the timeout to two seconds
+      });
+    }
+  }
+
+  async("https://cdn.jsdelivr.net/npm/webfontloader@1.6.28/webfontloader.min.js", asyncCb)
+</script>
+    <script>
+        (function (w) {
+            "use strict";
+            // rel=preload support test
+            if (!w.loadCSS) {
+                w.loadCSS = function () { };
+            }
+            // define on the loadCSS obj
+            var rp = loadCSS.relpreload = {};
+            // rel=preload feature support test
+            // runs once and returns a function for compat purposes
+            rp.support = (function () {
+                var ret;
+                try {
+                    ret = w.document.createElement("link").relList.supports("preload");
+                } catch (e) {
+                    ret = false;
+                }
+                return function () {
+                    return ret;
+                };
+            })();
+
+            // if preload isn't supported, get an asynchronous load by using a non-matching media attribute
+            // then change that media back to its intended value on load
+            rp.bindMediaToggle = function (link) {
+                // remember existing media attr for ultimate state, or default to 'all'
+                var finalMedia = link.media || "all";
+
+                function enableStylesheet() {
+                    link.media = finalMedia;
+                }
+
+                // bind load handlers to enable media
+                if (link.addEventListener) {
+                    link.addEventListener("load", enableStylesheet);
+                } else if (link.attachEvent) {
+                    link.attachEvent("onload", enableStylesheet);
+                }
+
+                // Set rel and non-applicable media type to start an async request
+                // note: timeout allows this to happen async to let rendering continue in IE
+                setTimeout(function () {
+                    link.rel = "stylesheet";
+                    link.media = "only x";
+                });
+                // also enable media after 3 seconds,
+                // which will catch very old browsers (android 2.x, old firefox) that don't support onload on link
+                setTimeout(enableStylesheet, 3000);
+            };
+
+            // loop through link elements in DOM
+            rp.poly = function () {
+                // double check this to prevent external calls from running
+                if (rp.support()) {
+                    return;
+                }
+                var links = w.document.getElementsByTagName("link");
+                for (var i = 0; i < links.length; i++) {
+                    var link = links[i];
+                    // qualify links to those with rel=preload and as=style attrs
+                    if (link.rel === "preload" && link.getAttribute("as") === "style" && !link.getAttribute("data-loadcss")) {
+                        // prevent rerunning on link
+                        link.setAttribute("data-loadcss", true);
+                        // bind listeners to toggle media back
+                        rp.bindMediaToggle(link);
+                    }
+                }
+            };
+
+            // if unsupported, run the polyfill
+            if (!rp.support()) {
+                // run once at least
+                rp.poly();
+
+                // rerun poly on an interval until onload
+                var run = w.setInterval(rp.poly, 500);
+                if (w.addEventListener) {
+                    w.addEventListener("load", function () {
+                        rp.poly();
+                        w.clearInterval(run);
+                    });
+                } else if (w.attachEvent) {
+                    w.attachEvent("onload", function () {
+                        rp.poly();
+                        w.clearInterval(run);
+                    });
+                }
+            }
+            // commonjs
+            if (typeof exports !== "undefined") {
+                exports.loadCSS = loadCSS;
+            }
+            else {
+                w.loadCSS = loadCSS;
+            }
+        }(typeof global !== "undefined" ? global : this));
+    </script>
+    <script src="//cdn.staticfile.org/jquery/3.2.1/jquery.min.js" defer></script>
+    
+    <script src="/littlemonster.github.io/scripts/main.js" defer></script>
+    <!-- 百度统计  -->
+    
+    <!-- 谷歌统计  -->
+    
+</head>
+
+    
+        <body class="post-body">
+    
+    
+<header class="header">
+
+    <div class="read-progress"></div>
+    <div class="header-sidebar-menu">&#xe775;</div>
+    <!-- post页的toggle banner  -->
+    
+    <div class="banner">
+            <div class="blog-title">
+                <a href="/littlemonster.github.io/" >小怪兽的窝</a>
+            </div>
+            <div class="post-title">
+                <a href="#" class="post-name">CSS小知识——气泡框实现（转）</a>
+            </div>
+    </div>
+    
+    <a class="home-link" href=/littlemonster.github.io/>小怪兽的窝</a>
+</header>
+    <div class="wrapper">
+        <div class="site-intro">
+    
+    <!-- 主页  -->
+    
+    
+    <!-- 404页  -->
+            
+    <div class="site-intro-img" style="background-image: url(/littlemonster.github.io/intro/post-bg.jpg)"></div>
+    <div class="site-intro-placeholder"></div>
+    <div class="site-intro-meta">
+        <!-- 标题  -->
+        <h1 class="intro-title">
+            <!-- 主页  -->
+            
+            CSS小知识——气泡框实现（转）
+            <!-- 404 -->
+            
+        </h1>
+        <!-- 副标题 -->
+        <p class="intro-subtitle">
+            <!-- 主页副标题  -->
+            
+            
+            <!-- 404 -->
+            
+        </p>
+        <!-- 文章页meta -->
+        
+            <!-- 文章页标签  -->
+            
+                <div class= post-intro-tags >
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = CSS>CSS</a>
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = 气泡框>气泡框</a>
+    
+</div>
+            
+            <script>window._bd_share_config = { "common": { "bdSnsKey": {}, "bdText": "", "bdMini": "2", "bdMiniList": false, "bdPic": "", "bdStyle": "1", "bdSize": "16" }, "share": {} }; with (document) 0[(getElementsByTagName('head')[0] || body).appendChild(createElement('script')).src = "/littlemonster.github.io/static/api/js/share.js"];</script>
+            <div class="post-intro-meta">
+                <span class="post-intro-calander iconfont-archer">&#xe676;</span>
+                <span class="post-intro-time">2018/02/26</span>
+                
+                <span id="busuanzi_container_page_pv" class="busuanzi-pv">
+                    <span class="iconfont-archer">&#xe604;</span>
+                    <span id="busuanzi_value_page_pv"></span>
+                </span>
+                
+                <span class="shareWrapper">
+                    <span class="iconfont-archer shareIcon">
+                        &#xe601;
+                    </span>
+                    <span class="bdsharebuttonbox">
+                        <a href="#" class="bds_more shareText" data-cmd="more">Share</a>
+                    </span>
+                </span>
+            </div>
+        
+    </div>
+</div>
+        <img class="loading" src="/littlemonster.github.io/assets/loading.svg" style="display: block; margin: 6rem auto 0 auto; width: 6rem; height: 6rem;" />
+
+        <div class="container container-unloaded">
+            <main class="main post-page">
+    <article class="article-entry">
+        <p>气泡框（或者提示框）是网页中一种很常见的元素，大多用来展示提示信息，如下图所示：<br><img src="https://images0.cnblogs.com/blog/131078/201306/27140929-1fb65137a64c43da98b56ffeab3923cc.x-png" alt=""><br>拆分来看，形如这种气泡框无外乎就是一个矩形框+一个指示方向的三角形小箭头，要制作出这样的气泡框，如果解决了三角形小箭头就容易了。一种方法就是制作这样一个三角形箭头的图片，然后定位在矩形框上。但这种解决办法在后期更改气泡框会很不方便，可能每修改一次气泡框都要重新制作一个三角形小图标。如果我们能够直接用HTML和CSS代码实现这样一个三角形小箭头一切都迎刃而解了。</p>
+<p>首先我们来看一下border这个属性，当我们把一个div的border-color设为不同值的时候，可以看到四边都成了一个梯形。<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># <span class="selector-tag">test</span>&#123;</span><br><span class="line">    <span class="attribute">width</span>:<span class="number">50px</span>; </span><br><span class="line">    <span class="attribute">height</span>:<span class="number">50px</span>; </span><br><span class="line">    <span class="attribute">border-width</span>:<span class="number">50px</span>; </span><br><span class="line">    <span class="attribute">border-style</span>:solid; </span><br><span class="line">    <span class="attribute">border-color</span>:<span class="number">#09F</span> <span class="number">#990</span> <span class="number">#933</span> <span class="number">#0C9</span>;&#125;</span><br></pre></td></tr></table></figure></p>
+<p><img src="https://images0.cnblogs.com/blog/131078/201306/27135955-aaa1f2752d73462aadea82e292475eba.x-png" alt=""><br>如果我们继续把这个div的width和height都设为0，可以看到四边都成了一个三角形。<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># <span class="selector-tag">test</span>&#123;<span class="attribute">width</span>:<span class="number">0</span>;</span><br><span class="line">       <span class="attribute">height</span>:<span class="number">0</span>;</span><br><span class="line">       <span class="attribute">border-width</span>:<span class="number">75px</span>;</span><br><span class="line">       <span class="attribute">border-style</span>:solid;</span><br><span class="line">       <span class="attribute">border-color</span>:<span class="number">#09F</span> <span class="number">#990</span> <span class="number">#933</span> <span class="number">#0C9</span>;&#125;</span><br></pre></td></tr></table></figure></p>
+<p><img src="https://images0.cnblogs.com/blog/131078/201306/27140105-00e0731396f14261989ffef09b394f6a.x-png" alt=""><br>在主流浏览器中检测一下，发现IE6中存在一个小问题，上下边能形成三角形，左右两边仍然还是梯形<br><img src="https://images0.cnblogs.com/blog/131078/201306/27140155-447ee9befd8040d0bd0b2fb68c0cc89c.x-png" alt=""><br>通过实验发现当把div的font-size和line-height都设为0的时候，div的四边在IE6下都能形成完美的三角形：<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-id">#test</span>&#123; <span class="attribute">width</span>:<span class="number">0</span>;</span><br><span class="line">       <span class="attribute">height</span>:<span class="number">0</span>;</span><br><span class="line">       <span class="attribute">border-width</span>:<span class="number">75px</span>;</span><br><span class="line">       <span class="attribute">border-style</span>:solid;</span><br><span class="line">       <span class="attribute">border-color</span>:<span class="number">#09F</span> <span class="number">#990</span> <span class="number">#933</span> <span class="number">#0C9</span>;</span><br><span class="line">       <span class="attribute">font-size</span>:<span class="number">0</span>;</span><br><span class="line">       <span class="attribute">line-height</span>:<span class="number">0</span>;&#125;</span><br></pre></td></tr></table></figure></p>
+<p><img src="https://images0.cnblogs.com/blog/131078/201306/27140105-00e0731396f14261989ffef09b394f6a.x-png" alt=""><br>很显然我们只需要其中的一个三角形，那么只需要将其他三边的color设置为透明或者跟页面背景一样的颜色，<br>就能模拟出一个三角来，推荐将其他三边颜色设置为透明，即color的值为transparent，如果其他三边颜色跟<br>页面背景一样，虽然视觉上只能看到一个三角，但背景颜色一旦改变，其他三边颜色也要随之改变。<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-id">#test</span>&#123; <span class="attribute">width</span>:<span class="number">0</span>;</span><br><span class="line">       <span class="attribute">height</span>:<span class="number">0</span>;</span><br><span class="line">       <span class="attribute">border-width</span>:<span class="number">75px</span>;</span><br><span class="line">       <span class="attribute">border-style</span>:solid;</span><br><span class="line">       <span class="attribute">border-color</span>:<span class="number">#09F</span> transparent transparent;</span><br><span class="line">       <span class="attribute">font-size</span>:<span class="number">0</span>;</span><br><span class="line">       <span class="attribute">line-height</span>:<span class="number">0</span>;&#125;</span><br></pre></td></tr></table></figure></p>
+<p><img src="https://images0.cnblogs.com/blog/131078/201306/27140346-dd09209ce9b74634bb329a5c977d8cd0.x-png" alt=""><br>问题又来了，IE6下transparent无效！其他三边被设置成默认的黑色了。<br><img src="https://images0.cnblogs.com/blog/131078/201306/27140409-453ea666963841138c626205019f8169.x-png" alt=""><br>但通过实验发现把border-style设置为dashed后，IE6下其他三边就能透明了！<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-id">#test</span>&#123; <span class="attribute">width</span>:<span class="number">0</span>;</span><br><span class="line">       <span class="attribute">height</span>:<span class="number">0</span>;</span><br><span class="line">       <span class="attribute">border-width</span>:<span class="number">75px</span>;</span><br><span class="line">       <span class="attribute">border-style</span>:solid dashed dashed;</span><br><span class="line">       <span class="attribute">border-color</span>:<span class="number">#09F</span> transparent transparent;</span><br><span class="line">       <span class="attribute">font-size</span>:<span class="number">0</span>;</span><br><span class="line">       <span class="attribute">line-height</span>:<span class="number">0</span>;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>到这一步我们已经成功的模拟出了一个小三角，下一步我们把这个小三角同矩形框结合起来。<br>先设置一个矩形框，然后把小三角定位到矩形框上。先来写出HTML结构：<br><figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"tag"</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">em</span>&gt;</span><span class="tag">&lt;/<span class="name">em</span>&gt;</span>   </span><br><span class="line">      CSS气泡框实现</span><br><span class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>CSS样式<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-class">.tag</span>&#123; <span class="attribute">width</span>:<span class="number">300px</span>;</span><br><span class="line">      <span class="attribute">height</span>:<span class="number">100px</span>;</span><br><span class="line">      <span class="attribute">border</span>:<span class="number">5px</span> solid <span class="number">#09F</span>;</span><br><span class="line">      <span class="attribute">position</span>:relative;&#125;</span><br><span class="line"><span class="selector-class">.tag</span> <span class="selector-tag">em</span>&#123;<span class="attribute">display</span>:block;</span><br><span class="line">        <span class="attribute">border-width</span>:<span class="number">20px</span>;</span><br><span class="line">        <span class="attribute">position</span>:absolute;</span><br><span class="line">        <span class="attribute">bottom</span>:-<span class="number">40px</span>;</span><br><span class="line">        <span class="attribute">left</span>:<span class="number">100px</span>;</span><br><span class="line">        <span class="attribute">border-style</span>:solid dashed dashed;</span><br><span class="line">        <span class="attribute">border-color</span>:<span class="number">#09F</span> transparent transparent;</span><br><span class="line">        <span class="attribute">font-size</span>:<span class="number">0</span>;</span><br><span class="line">        <span class="attribute">line-height</span>:<span class="number">0</span>;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>效果如下：<br><img src="https://images0.cnblogs.com/blog/131078/201306/27140650-0278f388c94d4d269f0da7e999e6c6c7.x-png" alt=""><br>现在指示方向的三角形箭头是实心的，而我们想要的是镂空的效果，这里我们再叠加一个同气泡框背景颜色一样的小三角，然后把这个叠加的小三角移动一下位置就能达到了。<br>首先需要对HTML结构进行调整，如下：<br><figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"tag"</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">em</span>&gt;</span><span class="tag">&lt;/<span class="name">em</span>&gt;</span>   </span><br><span class="line">      <span class="tag">&lt;<span class="name">span</span>&gt;</span><span class="tag">&lt;/<span class="name">span</span>&gt;</span></span><br><span class="line">      CSS气泡框实现</span><br><span class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>CSS样式修改为：<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-class">.tag</span>&#123; <span class="attribute">width</span>:<span class="number">300px</span>; <span class="attribute">height</span>:<span class="number">100px</span>;</span><br><span class="line">      <span class="attribute">border</span>:<span class="number">5px</span> solid <span class="number">#09F</span>; <span class="attribute">position</span>:relative;</span><br><span class="line">      <span class="attribute">background-color</span>:<span class="number">#FFF</span>;&#125;</span><br><span class="line"><span class="selector-class">.tag</span> <span class="selector-tag">em</span>&#123;<span class="attribute">display</span>:block; <span class="attribute">border-width</span>:<span class="number">20px</span>;</span><br><span class="line">      <span class="attribute">position</span>:absolute; <span class="attribute">bottom</span>:-<span class="number">40px</span>;</span><br><span class="line">      <span class="attribute">left</span>:<span class="number">100px</span>;<span class="attribute">border-style</span>:solid dashed dashed;</span><br><span class="line">      <span class="attribute">border-color</span>:<span class="number">#09F</span> transparent transparent;</span><br><span class="line">      <span class="attribute">font-size</span>:<span class="number">0</span>; <span class="attribute">line-height</span>:<span class="number">0</span>;&#125;</span><br><span class="line"><span class="selector-class">.tag</span> <span class="selector-tag">span</span>&#123;<span class="attribute">display</span>:block; <span class="attribute">border-width</span>:<span class="number">20px</span>;</span><br><span class="line">      <span class="attribute">position</span>:absolute; <span class="attribute">bottom</span>:-<span class="number">33px</span>; <span class="attribute">left</span>:<span class="number">100px</span>;</span><br><span class="line">      <span class="attribute">border-style</span>:solid dashed dashed;</span><br><span class="line">      <span class="attribute">border-color</span>:<span class="number">#FFF</span> transparent transparent;</span><br><span class="line">      <span class="attribute">font-size</span>:<span class="number">0</span>; <span class="attribute">line-height</span>:<span class="number">0</span>;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>最终效果如下所示：<br><img src="https://images0.cnblogs.com/blog/131078/201306/27140929-1fb65137a64c43da98b56ffeab3923cc.x-png" alt=""><br>注意：叠加的小三角span的bottom值并不是border-width的值，两个小三角bottom的差值理论上应该是2(border-width)2的平方根<br><img src="https://images0.cnblogs.com/blog/131078/201306/27141342-86373016c6244abea59acb416f4b74af.jpg" alt=""><br>最后来把代码优化一下，以便在后期更容易维护，完整的HTML结构：<br><figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"tag"</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;<span class="name">div</span> <span class="attr">class</span>=<span class="string">"arrow"</span>&gt;</span></span><br><span class="line">     <span class="tag">&lt;<span class="name">em</span>&gt;</span><span class="tag">&lt;/<span class="name">em</span>&gt;</span><span class="tag">&lt;<span class="name">span</span>&gt;</span><span class="tag">&lt;/<span class="name">span</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">    CSS气泡框实现</span><br><span class="line"><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>CSS样式修改为：<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-class">.tag</span>&#123; <span class="attribute">width</span>:<span class="number">300px</span>; <span class="attribute">height</span>:<span class="number">100px</span>; <span class="attribute">border</span>:<span class="number">5px</span> solid <span class="number">#09F</span>;</span><br><span class="line">      <span class="attribute">position</span>:relative; <span class="attribute">background-color</span>:<span class="number">#FFF</span>;&#125;</span><br><span class="line"><span class="selector-class">.arrow</span>&#123; <span class="attribute">position</span>:absolute; <span class="attribute">width</span>:<span class="number">40px</span>;</span><br><span class="line">      <span class="attribute">height</span>:<span class="number">40px</span>; <span class="attribute">bottom</span>:-<span class="number">40px</span>; <span class="attribute">left</span>:<span class="number">100px</span>; &#125;</span><br><span class="line"><span class="selector-class">.arrow</span> *&#123; <span class="attribute">display</span>:block; <span class="attribute">border-width</span>:<span class="number">20px</span>;</span><br><span class="line">      <span class="attribute">position</span>:absolute; <span class="attribute">border-style</span>:solid dashed dashed dashed;</span><br><span class="line">      <span class="attribute">font-size</span>:<span class="number">0</span>; <span class="attribute">line-height</span>:<span class="number">0</span>; &#125;</span><br><span class="line"><span class="selector-class">.arrow</span> <span class="selector-tag">em</span>&#123;<span class="attribute">border-color</span>:<span class="number">#09F</span> transparent transparent;&#125;</span><br><span class="line"><span class="selector-class">.arrow</span> <span class="selector-tag">span</span>&#123;<span class="attribute">border-color</span>:<span class="number">#FFF</span> transparent transparent; <span class="attribute">top</span>:-<span class="number">7px</span>;&#125;</span><br></pre></td></tr></table></figure></p>
+<p><em>本文转载自<a href="https://www.cnblogs.com/quanfu2326/p/4313977.html" target="_blank" rel="noopener">绫来</a></em></p>
+
+    </article>
+    <!-- 前后页  -->
+    <ul class="post-paginator">
+        <li class="next">
+            
+        </li>
+        <li class="previous">
+            
+                <div class="prevSlogan">Previous Post</div>
+                <a href= "/littlemonster.github.io/2018/02/26/hello-world/" title= Hello World >
+                    <div class="prevTitle">Hello World</div>
+                </a>
+            
+        </li>
+    </ul>
+    <!-- 评论插件 -->
+    <!-- 来必力City版安装代码 -->
+
+<!-- City版安装代码已完成 -->
+    
+    
+    <!--PC版-->
+
+    <!--PC版-->
+
+
+    
+    <!-- 评论 -->
+</main>
+            <!-- profile -->
+            
+        </div>
+        <footer class="footer footer-unloaded">
+    <!-- social  -->
+    
+    <div class="social">
+        
+    
+        
+            
+                <a href="mailto:zrj9497@163.com" class="iconfont-archer email" title=email ></a>
+            
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+    </div>
+    
+    <!-- powered by Hexo  -->
+    <div class="copyright">
+        <span id="hexo-power">Powered by <a href="https://hexo.io/" target="_blank">Hexo</a></span><span class="iconfont-archer power">&#xe635;</span><span id="theme-info">theme <a href="https://github.com/fi3ework/hexo-theme-archer" target="_blank">Archer</a></span>
+    </div>
+    <!-- 不蒜子  -->
+    
+    <div class="busuanzi-container">
+        <span id="busuanzi_container_site_pv">PV: <span id="busuanzi_value_site_pv"></span>
+        </span>
+    </div>
+    
+</footer>
+    </div>
+    <!-- toc -->
+    
+    <div class="toc-wrapper">
+        <div class="toc-catalog">
+            <span class="iconfont-archer catalog-icon">&#xe613;</span><span>CATALOG</span>
+        </div>
+        
+    </div>
+    
+    <div class="back-top iconfont-archer">&#xe639;</div>
+    <div class="sidebar sidebar-hide">
+    <ul class="sidebar-tabs sidebar-tabs-active-0">
+        <li class="sidebar-tab-archives"><span class="iconfont-archer">&#xe67d;</span><span class="tab-name">文章</span></li>
+        <li class="sidebar-tab-tags"><span class="iconfont-archer">&#xe61b;</span><span class="tab-name">标签</span></li>
+        <li class="sidebar-tab-categories"><span class="iconfont-archer">&#xe666;</span><span class="tab-name">分类</span></li>
+    </ul>
+    <div class="sidebar-content sidebar-content-show-archive">
+          <div class="sidebar-panel-archives">
+    <!-- 在ejs中将archive按照时间排序 -->
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <div class="total-archive"> Total : 2 </div>
+    
+    <div class="post-archive">
+    
+    
+    
+    
+    <div class="archive-year"> Invalid date </div>
+    <ul class="year-list">
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">Invalid date</span><a class="archive-post-title" href= "/littlemonster.github.io/2018/02/26/hello-world/" >Hello World</a>
+        </li>
+    
+    
+    
+    
+    
+        </ul>
+    
+    <div class="archive-year"> 2018 </div>
+    <ul class="year-list">
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/26</span><a class="archive-post-title" href= "/littlemonster.github.io/2018/02/26/每天一点CSS——气泡框实现（转）/" >CSS小知识——气泡框实现（转）</a>
+        </li>
+    
+    </div>
+  </div>
+        <div class="sidebar-panel-tags">
+    <div class="sidebar-tags-name">
+    
+        <span class="sidebar-tag-name" data-tags="CSS"><span class="iconfont-archer">&#xe606;</span>CSS</span>
+    
+        <span class="sidebar-tag-name" data-tags="气泡框"><span class="iconfont-archer">&#xe606;</span>气泡框</span>
+    
+    </div>
+    <div class="iconfont-archer sidebar-tags-empty">&#xe678;</div>
+    <div class="tag-load-fail" style="display: none; color: #ccc; font-size: 0.6rem;">
+    缺失模块。<br/>
+    1、请确保node版本大于6.2<br/>
+    2、在博客根目录（注意不是archer根目录）执行以下命令：<br/>
+    <span style="color: #f75357; font-size: 1rem; line-height: 2rem;">npm i hexo-generator-json-content --save</span><br/>
+    3、在根目录_config.yml里添加配置：
+    <pre style="color: #787878; font-size: 0.6rem;">
+jsonContent:
+  meta: false
+  pages: false
+  posts:
+    title: true
+    date: true
+    path: true
+    text: false
+    raw: false
+    content: false
+    slug: false
+    updated: false
+    comments: false
+    link: false
+    permalink: false
+    excerpt: false
+    categories: true
+    tags: true</pre>
+    </div> 
+    <div class="sidebar-tags-list"></div>
+</div>
+        <div class="sidebar-panel-categories">
+    <div class="sidebar-categories-name">
+    
+    </div>
+    <div class="iconfont-archer sidebar-categories-empty">&#xe678;</div>
+    <div class="sidebar-categories-list"></div>
+</div>
+    </div>
+</div> 
+    <script>
+    var siteMeta = {
+        root: '/littlemonster.github.io/'
+    }
+</script>
+    <!-- 不蒜子  -->
+    
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    
+    <!-- CNZZ统计  -->
+    
+    </div>
+    </body>
+</html>
+
+
